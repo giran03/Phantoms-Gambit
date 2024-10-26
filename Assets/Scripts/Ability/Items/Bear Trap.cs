@@ -7,36 +7,41 @@ using UnityEngine;
 [RequireComponent(typeof(PhotonTransformView))]
 public class BearTrap : MonoBehaviourPunCallbacks
 {
+    GameObject hunterTrapped;
     [SerializeField] ItemNetworkSFX itemNetworkSFX;
     private void OnTriggerEnter(Collider other)
     {
-        if(!photonView.IsMine) return;
-
         if (other.gameObject.CompareTag("Hunter"))
         {
+            if (!other.GetComponentInParent<PlayerController>().IsHunter) return;
+
+            hunterTrapped = other.gameObject;
             itemNetworkSFX.PlayItemSFX();
 
             other.GetComponentInParent<PlayerController>().TakeDamage(12f);
 
-            StartCoroutine(EnablePlayerAfterDelay(other));
+            photonView.RPC(nameof(EnablePlayerAfterDelay), RpcTarget.All);
         }
     }
 
-    private IEnumerator EnablePlayerAfterDelay(Collider other)
+    [PunRPC]
+    IEnumerator EnablePlayerAfterDelay()
     {
         Debug.Log($"Ooops~ Bear trap!");
-        other.GetComponentInParent<PlayerController>().CanMove = false;
+        hunterTrapped.GetComponentInParent<PlayerController>().CanMove = false;
         GetComponent<Collider>().enabled = false;
 
-        yield return new WaitForSeconds(other.GetComponentInParent<PlayerController>().StunDuration);
+        yield return new WaitForSeconds(hunterTrapped.GetComponentInParent<PlayerController>().StunDuration);
 
-        if (other.GetComponentInParent<PlayerController>().currentHealth > 0)
-            other.GetComponentInParent<PlayerController>().CanMove = true;
+        if (hunterTrapped.GetComponentInParent<PlayerController>().currentHealth > 0)
+            hunterTrapped.GetComponentInParent<PlayerController>().CanMove = true;
 
-        if (other.GetComponentInParent<AbilityHandler>().MaxTrap < 3)
-            other.GetComponentInParent<AbilityHandler>().MaxTrap++;
+        if (hunterTrapped.GetComponentInParent<AbilityHandler>().MaxTrap < 3)
+            hunterTrapped.GetComponentInParent<AbilityHandler>().MaxTrap++;
 
-        other.GetComponentInParent<PlayerController>().HidePlayerOutline();
-        PhotonNetwork.Destroy(gameObject);
+        hunterTrapped.GetComponentInParent<PlayerController>().HidePlayerOutline();
+
+        // TODO: network destroy?
+        Destroy(gameObject);
     }
 }

@@ -18,6 +18,11 @@ public class RitualPole : MonoBehaviourPunCallbacks
         progressBar.fillAmount = 0f;
     }
 
+    private void Update()
+    {
+        photonView.RPC(nameof(UpdateProgressBar), RpcTarget.All);
+    }
+
     [PunRPC]
     void UpdateProgressBar()
     {
@@ -45,14 +50,11 @@ public class RitualPole : MonoBehaviourPunCallbacks
 
     private void OnTriggerStay(Collider other)
     {
-        if (!photonView.IsMine) return;
-
         if (other.gameObject.CompareTag("Props"))
         {
             if (IsActivated) return;
 
             isActivating = true;
-            other.GetComponentInParent<PlayerController>().ShowPlayerOutline();
 
             progressBar.fillAmount += Time.deltaTime / fillSpeed;
 
@@ -64,16 +66,21 @@ public class RitualPole : MonoBehaviourPunCallbacks
 
             if (progressBar.fillAmount >= 1f)
             {
-                IsActivated = true;
-                Debug.Log($"This Gate is activated!");
+                photonView.RPC(nameof(ActivateGate), RpcTarget.All);
 
-                other.gameObject.GetComponentInParent<PlayerController>().PlaySFX(6, transform.position, 500);
+                other.gameObject.GetComponentInParent<PlayerController>().PlaySFX(6, transform.position, 1000);
 
                 activateObjects?.ForEach(x => x.SetActive(true));
+                Debug.Log($"This Gate is activated!");
             }
-
-            photonView.RPC(nameof(UpdateProgressBar), RpcTarget.All);
         }
+    }
+
+    [PunRPC]
+    void ActivateGate()
+    {
+        PhotonNetwork.Instantiate($"Particles\\Shrine", transform.position, transform.rotation);
+        IsActivated = true;
     }
 
     private void OnTriggerExit(Collider other)

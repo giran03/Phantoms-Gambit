@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -39,6 +40,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	float currentSpeed;
 	Vector3 moveDirection;
 	RaycastHit slopeHit;
+	(Vector3, quaternion) InitialPosition;
 
 	[Header("HUD")]
 	[SerializeField] TMP_Text ammoText;
@@ -73,12 +75,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 	// puzzle
 	[Header("HUD")]
-	public List<GameObject> collectedSpiritOrbs = new();
-	[SerializeField] GameObject huntIcon;
-	// [SerializeField] GameObject cantMoveIcon;
+	[SerializeField] GameObject cantMoveIcon;
 
 	// Player resuce vars
-	float rescueTime = 10f;
+	const float rescueTime = 10f;
 	GameObject rescuerProps;
 
 	// IPunobservable vars
@@ -92,6 +92,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	public bool IsAuraActive { get; set; }
 
 	bool lockMovement = false;
+
+	private bool isStunned;
 
 	void Awake()
 	{
@@ -124,10 +126,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 						break;
 				}
 
+				rescueProgressBar.fillAmount = 0f;
 				photonViewPlayer.RPC(nameof(SetDefaultProp), RpcTarget.All);
+
+				InitialPosition = (transform.position, transform.rotation);
 			}
 
-			spiritualPowerProgress.fillAmount = 0f;
 			stunTimerText.gameObject.SetActive(false);
 
 			EquipItem(0);
@@ -160,7 +164,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 		if (!CanMove)
 		{
-			// cantMoveIcon.SetActive(true);
+			cantMoveIcon.SetActive(true);
 			ShowPlayerOutline();
 
 			if (!isStunned)
@@ -168,8 +172,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 			return;
 		}
-		// else
-		// 	cantMoveIcon.SetActive(false);
+		else
+			cantMoveIcon.SetActive(false);
 
 		if (lockMovement) return;
 
@@ -177,8 +181,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 		if (!IsHunter)
 		{
-			var objectHeight = _MapProps[_currentPropIndex].GetComponentInChildren<CapsuleCollider>().height * 1.2f;
-			grounded = Physics.Raycast(_MapProps[_currentPropIndex].transform.position, Vector3.down, Mathf.Infinity, GroundLayer);
+			grounded = Physics.Raycast(_MapProps[_currentPropIndex].transform.position + _MapProps[_currentPropIndex].transform.TransformVector(Vector3.zero),
+			Vector3.down, out RaycastHit hit, 1.8f, GroundLayer);
+
+			Debug.DrawRay(_MapProps[_currentPropIndex].transform.position + _MapProps[_currentPropIndex].transform.TransformVector(Vector3.zero),
+			Vector3.down * 1.8f, Color.green);
+
+			Debug.Log($"grounded: {grounded} | _currentPropIndex: {_currentPropIndex}");
 		}
 
 		Look();
@@ -297,27 +306,27 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		#endregion
 
 		// puzzle checker
-		if (IsSpiritualPowerFull())
+		if (Timer.Instance.IsSpiritualPowerFull())
 			EscapeGate.IsUsable = true;
 
 		if (transform.position.y < -10f)
-			Die();
+			transform.SetPositionAndRotation(InitialPosition.Item1, InitialPosition.Item2);
+		// Die();
 
 		// check HP
 		if (currentHealth <= 0 && CanMove)
 		{
 			if (IsHunter)
 			{
-				CanMove = false;
 				// stunned while health is not full
-				// StartCoroutine(StunHunter(20f));
 				if (canKillHunter)
 					Die();
+
+				CanMove = false;
 			}
 			else
 			{
 				CanMove = false;
-				// StartCoroutine(StunProps(45f));
 			}
 		}
 	}
@@ -333,9 +342,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 	public void TakeDamage(float damage)
 	{
-		if (IsHunter)
+		if (IsHunter) // && canKillHunter
+		{
+			Debug.LogError("Shooting hunter!");
 			photonViewPlayer.RPC(nameof(RPC_TakeDamage), photonViewPlayer.Owner, damage);
-		else
+		}
+		else if (!IsHunter)
 			photonViewPlayer.RPC(nameof(RPC_TakeDamage), photonViewPlayer.Owner, damage);
 	}
 
@@ -420,7 +432,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	{
 		if (IsHunter)
 		{
-			if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, Mathf.Infinity))
+			if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, GetComponent<CapsuleCollider>().height * 1.3f))
 			{
 				float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
 				return angle < 65 && angle != 0;
@@ -428,7 +440,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		}
 		else
 		{
-			if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, Mathf.Infinity))
+			if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, GetComponentInChildren<CapsuleCollider>().height * 1.3f))
 			{
 				float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
 				return angle < 65 && angle != 0;
@@ -497,23 +509,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	[PunRPC]
 	void RPC_TakeDamage(float damage, PhotonMessageInfo info)
 	{
+		if (currentHealth <= 0)
+		{
+			currentHealth = 0;
+			return;
+		}
+
 		currentHealth -= damage;
 
 		healthbarImage.fillAmount = currentHealth / maxHealth;
 
 		UpdatePlayerProperties_HP();
-	}
-
-	IEnumerator StunHunter(float duration)
-	{
-		Debug.Log($"Im called in stun hunter!");
-		CanMove = false;
-
-		yield return new WaitForSeconds(duration);
-
-		Debug.Log($"Im called in stun hunter but the health is 100!");
-		CanMove = true;
-		HidePlayerOutline();
 	}
 
 	void Die() => playerManager.Die();
@@ -541,8 +547,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 		Debug.Log($"Player HP properties set!");
 	}
-
-	public bool IsHealthFull() => currentHealth == maxHealth;
 
 	#region Stunned
 
@@ -651,62 +655,34 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		}
 	}
 
-	public void RPC_AuraOfFear()
-	{
-		_propsDefaultSpeed = MoveSpeedBurst;
-		MoveSpeedBurst = -6f;
-		IsAuraActive = true;
-		ShowPlayerOutline();
-	}
-
-	public void RPC_EndAuraOfFear()
-	{
-		MoveSpeedBurst = _propsDefaultSpeed;
-		IsAuraActive = false;
-		HidePlayerOutline();
-	}
-
-	[PunRPC]
 	public void StartAuraOfFear() => photonViewPlayer.RPC(nameof(AuraOfFear), RpcTarget.All);
 
 	[PunRPC]
 	IEnumerator AuraOfFear()
 	{
 		Debug.Log($"Starting aura of fear!");
-		RPC_AuraOfFear();
+		_propsDefaultSpeed = MoveSpeedBurst;
+		MoveSpeedBurst = -6f;
+		IsAuraActive = true;
+		ShowPlayerOutline();
 		yield return new WaitForSeconds(6f);
-		RPC_EndAuraOfFear();
+		MoveSpeedBurst = _propsDefaultSpeed;
+		IsAuraActive = false;
+		HidePlayerOutline();
 	}
-
 	#endregion
 
 	public void PlaySFX(int index, Vector3 followTarget, int maxAudioDistance = 35) => playerNetworkSoundManager.PlayOtherSFX(index, followTarget, maxAudioDistance);
 
 	#region Puzzle
-	[Header("Configs")]
-	[SerializeField] Image spiritualPowerProgress;
-	private bool isStunned;
-	private Ability _currentAbilityUsed;
 
 	public void AddOrbToInventory(GameObject spiritOrb)
 	{
-		if (!photonViewPlayer.IsMine) return;
+		if (IsHunter) return;
 
-		if (!collectedSpiritOrbs.Contains(spiritOrb))
-		{
-			collectedSpiritOrbs.Add(spiritOrb);
-			RPC_UpdateSpiritualPowerProgress(collectedSpiritOrbs.Count);
-		}
+		Timer.Instance.AddCollectedSpiritOrb(spiritOrb);
+		// Timer.Instance.RPC_UpdateSpiritualPowerProgress();
 	}
-
-	public void RPC_UpdateSpiritualPowerProgress(int progress) =>
-	photonViewPlayer.RPC(nameof(UpdateSpiritualPowerProgress), RpcTarget.All, progress);
-
-	[PunRPC]
-	void UpdateSpiritualPowerProgress(int progress) =>
-	spiritualPowerProgress.fillAmount = progress / (float)EscapeGate.Instance.requiredSpiritOrbs.Count;
-
-	public bool IsSpiritualPowerFull() => spiritualPowerProgress.fillAmount >= 1f;
 
 	public void HuntHunter() => photonViewPlayer.RPC(nameof(HuntIsOn), RpcTarget.All);
 
@@ -714,7 +690,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	void HuntIsOn()
 	{
 		canKillHunter = true;
-		huntIcon.SetActive(true);
+		// huntIcon.SetActive(true);
 
 		((GunInfo)items[0].itemInfo).currentMagSize = 150;
 
@@ -727,6 +703,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	}
 	#endregion
 
+	GameObject overlay;
 	private void OnTriggerStay(Collider other)
 	{
 		if (!photonViewPlayer.IsMine) return;
@@ -738,7 +715,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			{
 				rescuerProps = other.gameObject;
 				rescueOverlay.SetActive(true);
-				rescueProgressBar.fillAmount += Time.deltaTime / rescueTime;
+				rescueProgressBar.fillAmount += Time.time / rescueTime;
 			}
 
 			if (rescueProgressBar.fillAmount >= 1f)
@@ -760,6 +737,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 	void SaveDownedPlayer()
 	{
+		rescueProgressBar.fillAmount = 0f;
 		CanMove = true;
 		HealPlayer(100f);
 		UpdatePlayerProperties_HP();

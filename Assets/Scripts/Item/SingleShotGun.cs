@@ -73,16 +73,12 @@ public class SingleShotGun : Gun
 			if (hit.collider.gameObject.TryGetComponent<IDamageable>(out var damageable))
 				damageable.TakeDamage((int)((GunInfo)itemInfo).damage);
 
-			else
-			{
-				if (GetComponentInParent<PlayerController>().IsHunter)
-					if (hit.collider.gameObject.TryGetComponent<DestroyableProps>(out var destroyableProps))
-						if (destroyableProps.CanDamagePlayer)
-							GetComponentInParent<PlayerController>().TakeDamage(10f);
-			}
-
 			if (GetComponentInParent<PlayerController>().IsHunter)
 			{
+				if (hit.collider.gameObject.TryGetComponent<DestroyableProps>(out var destroyableProps))
+					if (destroyableProps.CanDamagePlayer)
+						GetComponentInParent<PlayerController>().TakeDamage(10f);
+
 				if (hit.collider.gameObject.TryGetComponent<IDestroyable>(out var destroyable))
 					destroyable.Damage((int)((GunInfo)itemInfo).damage);
 			}
@@ -118,9 +114,8 @@ public class SingleShotGun : Gun
 					StartCoroutine(HealAfterTime());
 				}
 				else
-				{
 					timer += Time.deltaTime;
-				}
+
 				yield return null;
 			}
 		}

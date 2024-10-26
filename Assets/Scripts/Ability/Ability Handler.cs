@@ -111,20 +111,6 @@ public class AbilityHandler : MonoBehaviourPun
         {
             if (spawnedParticle != null)
                 spawnedParticle.transform.position = transform.position;
-
-            colliders = new Collider[5];
-            int count = Physics.OverlapSphereNonAlloc(transform.position, 7f, colliders);
-            props = new List<Collider>(count);
-            for (int i = 0; i < count; i++)
-            {
-                if (colliders[i].CompareTag("Props"))
-                {
-                    if (!props.Contains(colliders[i]))
-                        props.Add(colliders[i]);
-                }
-                else
-                    Debug.Log($"Not props! {colliders[i].gameObject.name}");
-            }
         }
     }
 
@@ -218,11 +204,17 @@ public class AbilityHandler : MonoBehaviourPun
                 case AbilityType.Aura_of_Fear:
                     Debug.Log($"Using Aura of Fear");
 
-                    foreach (var _props in props)
+                    Collider[] colliders = Physics.OverlapSphere(transform.position, 7f);
+                    foreach (var col in colliders)
                     {
-                        Debug.LogError($"_props caught in aura of fear: {_props.gameObject.name}");
-                        _props.gameObject.GetComponentInParent<PlayerController>().StartAuraOfFear();
-                        props?.Clear();
+                        Debug.LogError($"_col: {col.gameObject.name}");
+                        if (col.CompareTag("Props"))
+                        {
+                            Debug.LogError($"_props caught in aura of fear: {col.gameObject.name}");
+                            col.gameObject.GetComponentInParent<PlayerController>().StartAuraOfFear();
+                        }
+                        else
+                            Debug.Log($"Not props! {col.gameObject.name}");
                     }
 
                     SpawnParticle("Aura of Fear", spawnedParticle);

@@ -77,8 +77,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 				StartCoroutine(SpawnPlayers());
 				break;
 			case "Hunter":
-				if (controller.GetComponent<PlayerController>().IsSpiritualPowerFull())
-					photonView.RPC(nameof(LoadLevel), RpcTarget.All);
+				photonView.RPC(nameof(LoadLevel), RpcTarget.All);
 				break;
 		}
 
@@ -94,7 +93,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 	}
 
 	[PunRPC]
-	void LoadLevel() => PhotonNetwork.LoadLevel(2);
+	void LoadLevel() => PhotonNetwork.LoadLevel("PropsWin");
 
 	public void GetKill() => photonView.RPC(nameof(RPC_GetKill), photonView.Owner);
 

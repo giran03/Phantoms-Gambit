@@ -18,17 +18,19 @@ public class RitualHandler : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (!photonView.IsMine) return;
-
-        CheckRitual();
-
-        if (Input.GetKeyDown(KeyCode.U))
+        if (PhotonNetwork.IsMasterClient)
         {
-            isCompleted = true;
-            _photonView.RPC(nameof(SyncRitualComplete), RpcTarget.All, isCompleted);
+            photonView.RPC(nameof(CheckRitual), RpcTarget.All);
+
+            if (Input.GetKeyDown(KeyCode.U))
+            {
+                isCompleted = true;
+                _photonView.RPC(nameof(SyncRitualComplete), RpcTarget.All, isCompleted);
+            }
         }
     }
 
+    [PunRPC]
     void CheckRitual()
     {
         foreach (var gate in toriiGates)

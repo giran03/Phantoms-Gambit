@@ -7,8 +7,6 @@ public class SpiritOrb : MonoBehaviourPunCallbacks
 {
     private void OnTriggerEnter(Collider other)
     {
-        if (!photonView.IsMine) return;
-
         if (other.gameObject.CompareTag("Props"))
         {
             PlayerController.playerNetworkSoundManager.PlayOtherSFX(5, transform.position);

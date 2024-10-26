@@ -25,6 +25,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 	int _maxHunters = 1;
 	string assignment;
 	List<Player> _huntedPlayers = new();
+	bool isClicked = false;
 
 	void Awake() => Instance = this;
 
@@ -33,7 +34,8 @@ public class Launcher : MonoBehaviourPunCallbacks
 	void RoomPlayers()
 	{
 		bool playerRequired = PhotonNetwork.PlayerList.Length >= 1;
-		startGameButton.GetComponent<Button>().interactable = playerRequired;
+		if (!isClicked)
+			startGameButton.GetComponent<Button>().interactable = playerRequired;
 		infoText.SetActive(!playerRequired);
 	}
 
@@ -101,10 +103,11 @@ public class Launcher : MonoBehaviourPunCallbacks
 
 	public void StartGame()
 	{
-		List<string> mapNames = new() { "Map1", "Map2"};
+		isClicked = true;
+		List<string> mapNames = new() { "Map1", "Map2" };
 		string randomMap = mapNames[Random.Range(0, mapNames.Count)];
 		Debug.Log($"Random map index {randomMap}");
-		PhotonNetwork.LoadLevel(randomMap);
+		PhotonNetwork.LoadLevel("Map2");
 	}
 
 	public void LeaveRoom()
@@ -174,4 +177,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 		player.SetCustomProperties(hash);
 		Debug.Log($"Assigned to master: {assignment}");
 	}
+
+	public void Button_RefreshRoomlist() => PhotonNetwork.JoinLobby();
+
 }

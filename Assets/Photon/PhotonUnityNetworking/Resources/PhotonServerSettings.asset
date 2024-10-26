@@ -97,6 +97,16 @@ MonoBehaviour:
   - InvisibilityCloak_RPC
   - AuraOfFear
   - SetHunterModel
+  - RPC_SyncCollectedSpiritOrbs
+  - CheckOrbCount
+  - UpdateCollectedOrbs
+  - Setting
+  - UpdateCount
+  - ActivateGate
+  - CheckRitual
+  - ActivateHuntIcon
+  - StartHuntingHunter
+  - EnablePlayerAfterDelay
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
