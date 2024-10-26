@@ -10,18 +10,18 @@ public class EndScreen : MonoBehaviourPunCallbacks
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+            ReturnToMainMenu();
+    }
     public void ReturnToMainMenu()
     {
-        StartCoroutine(DisconnectAndLoad());
-    }
-
-    IEnumerator DisconnectAndLoad()
-    {
         PhotonNetwork.LeaveRoom();
-        while (PhotonNetwork.InRoom)
-        {
-            yield return null;
-        }
+    }
+    public override void OnLeftRoom()
+    {
+        Debug.Log($"Left Room!");
         PhotonNetwork.LoadLevel("Menu");
     }
 }

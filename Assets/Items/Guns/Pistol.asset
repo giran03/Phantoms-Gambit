@@ -15,11 +15,11 @@ MonoBehaviour:
   itemName: Pistol
   SFXName: 
   ReloadSFXName: 
-  damage: 18
+  damage: 14
   fireRate: 0.1
   isAutomatic: 0
   recoil: 0.35
   magSize: 15
   currentAmmo: 0
   reloadTime: 1
-  currentMagSize: 2
+  currentMagSize: 0

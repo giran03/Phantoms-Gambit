@@ -45,13 +45,13 @@ public class Scoreboard : MonoBehaviourPunCallbacks
 
 	void Update()
 	{
-		if(Input.GetKeyDown(KeyCode.Tab))
-		{
-			canvasGroup.alpha = 1;
-		}
-		else if(Input.GetKeyUp(KeyCode.Tab))
-		{
-			canvasGroup.alpha = 0;
-		}
+		// if(Input.GetKeyDown(KeyCode.Tab))
+		// {
+		// 	canvasGroup.alpha = 1;
+		// }
+		// else if(Input.GetKeyUp(KeyCode.Tab))
+		// {
+		// 	canvasGroup.alpha = 0;
+		// }
 	}
 }

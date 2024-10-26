@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
 {
+    public GameObject audioSourcePrefab;
     public AudioSource footstepSource;
     public AudioClip footstepSFX;
 
@@ -17,10 +18,7 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
     public AudioSource otherSource;
     public AudioClip[] otherSFX;
 
-    public void PlayFootstepSFX()
-    {
-        GetComponent<PhotonView>().RPC(nameof(PlayFootstepSFX_RPC), RpcTarget.All);
-    }
+    public void PlayFootstepSFX() => GetComponent<PhotonView>().RPC(nameof(PlayFootstepSFX_RPC), RpcTarget.All);
 
     [PunRPC]
     public void PlayFootstepSFX_RPC()
@@ -33,10 +31,7 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
         footstepSource.Play();
     }
 
-    public void PlayGunShotSFX(int index)
-    {
-        GetComponent<PhotonView>().RPC(nameof(PlayGunShotSFX_RPC), RpcTarget.All, index);
-    }
+    public void PlayGunShotSFX(int index) => GetComponent<PhotonView>().RPC(nameof(PlayGunShotSFX_RPC), RpcTarget.All, index);
 
     [PunRPC]
     public void PlayGunShotSFX_RPC(int index)
@@ -48,10 +43,7 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
         gunShotSource.Play();
     }
 
-    public void PlayWhistleSFX()
-    {
-        GetComponent<PhotonView>().RPC(nameof(PlayWhistleSFX_RPC), RpcTarget.All);
-    }
+    public void PlayWhistleSFX() => GetComponent<PhotonView>().RPC(nameof(PlayWhistleSFX_RPC), RpcTarget.All);
 
     [PunRPC]
     public void PlayWhistleSFX_RPC()
@@ -59,23 +51,38 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
         int randomIndex = Random.Range(0, whistleSFX.Length);
         whistleSource.clip = whistleSFX[randomIndex];
 
-        whistleSource.volume = Random.Range(.2f, .35f);
-
         whistleSource.Play();
     }
 
-    public void PlayOtherSFX(int index)
-    {
-        GetComponent<PhotonView>().RPC(nameof(PlayOtherSFX_RPC), RpcTarget.All, index);
-    }
+    public void PlayOtherSFX(int index, Vector3 spawnAudioSourcePosition, int maxAudioDistance = 35) =>
+                GetComponent<PhotonView>().RPC(nameof(PlayOtherSFX_RPC), RpcTarget.All, index, spawnAudioSourcePosition, maxAudioDistance);
 
     [PunRPC]
-    public void PlayOtherSFX_RPC(int index)
+    public void PlayOtherSFX_RPC(int index, Vector3 spawnAudioSourcePosition, int maxAudioDistance)
     {
-        otherSource.clip = otherSFX[index];
+        GameObject audioObject = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
+        AudioSource audioSource = audioObject.GetComponent<AudioSource>();
+        audioSource.maxDistance = maxAudioDistance;
+        audioSource.clip = otherSFX[index];
+        audioSource.Play();
+        StartCoroutine(DestroyAudioObjectAfterClipFinished(audioObject, spawnAudioSourcePosition));
+    }
 
-        otherSource.volume = Random.Range(.2f, .35f);
 
-        otherSource.Play();
+    IEnumerator DestroyAudioObjectAfterClipFinished(GameObject audioObject, Vector3 spawnAudioSourcePosition)
+    {
+        AudioSource audioSource = audioObject.GetComponent<AudioSource>();
+
+        while (audioSource.time < audioSource.clip.length)
+        {
+            if (spawnAudioSourcePosition != Vector3.zero)
+                audioObject.transform.SetPositionAndRotation(spawnAudioSourcePosition, Quaternion.identity);
+            else
+                audioObject.transform.position = transform.position;
+
+            yield return null;
+        }
+
+        PhotonNetwork.Destroy(audioObject);
     }
 }

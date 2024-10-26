@@ -6,6 +6,7 @@ using UnityEngine;
 public class Ability : ScriptableObject
 {
     public AbilityHandler.AbilityType abilityType;
+    public Sprite abilityImage;
     public float AbilityCooldown;
     public bool OnCooldown;
 }

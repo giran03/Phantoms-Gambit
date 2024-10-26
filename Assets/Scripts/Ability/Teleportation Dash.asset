@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73f084e5391385f46bc707760920dc78, type: 3}
   m_Name: Teleportation Dash
   m_EditorClassIdentifier: 
-  abilityType: 3
+  abilityType: 0
+  abilityImage: {fileID: 21300000, guid: 38a41d040a40fa847af372ff8b042897, type: 3}
   AbilityCooldown: 1
   OnCooldown: 0

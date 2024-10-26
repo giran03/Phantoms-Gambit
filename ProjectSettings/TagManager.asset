@@ -8,6 +8,7 @@ TagManager:
   - Hunter
   - HunterCam
   - DeathCam
+  - Orb
   layers:
   - Default
   - TransparentFX
@@ -18,9 +19,9 @@ TagManager:
   - Hand
   - Hunter
   - Self
-  - 
-  - 
-  - 
+  - Props
+  - Traps
+  - NotShootable
   - 
   - 
   - 

@@ -17,10 +17,15 @@ public class EDITOR_SceneSwitch : MonoBehaviour
     {
         LoadScene("Assets/_Scenes/Menu.unity");
     }
-    [MenuItem("Level Loader/Load Game Scene #&3")]
-    public static void LoadGame()
+    [MenuItem("Level Loader/Load Map 1 #&3")]
+    public static void LoadMap1()
     {
-        LoadScene("Assets/_Scenes/Game.unity");
+        LoadScene("Assets/_Scenes/Map1.unity");
+    }
+    [MenuItem("Level Loader/Load Map 2 #&4")]
+    public static void LoadMap2()
+    {
+        LoadScene("Assets/_Scenes/Map2.unity");
     }
 
 

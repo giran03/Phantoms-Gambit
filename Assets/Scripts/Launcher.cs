@@ -6,36 +6,35 @@ using TMPro;
 using Photon.Realtime;
 using System.Linq;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine.UI;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
 	public static Launcher Instance;
 
-	[SerializeField]
-	private TMP_InputField roomNameInputField;
-	[SerializeField]
-	private TMP_Text errorText;
-	[SerializeField]
-	private TMP_Text roomNameText;
-	[SerializeField]
-	private Transform roomListContent;
-	[SerializeField]
-	private GameObject roomListItemPrefab;
-	[SerializeField]
-	private Transform playerListContent;
-	[SerializeField]
-	private GameObject PlayerListItemPrefab;
-	[SerializeField]
-	GameObject startGameButton;
+	[SerializeField] TMP_InputField roomNameInputField;
+	[SerializeField] TMP_Text errorText;
+	[SerializeField] TMP_Text roomNameText;
+	[SerializeField] Transform roomListContent;
+	[SerializeField] GameObject roomListItemPrefab;
+	[SerializeField] Transform playerListContent;
+	[SerializeField] GameObject PlayerListItemPrefab;
+	[SerializeField] GameObject startGameButton;
+	[SerializeField] GameObject infoText;
+
 	int _maxHunters = 1;
 	string assignment;
 	List<Player> _huntedPlayers = new();
 
-	List<Player> allPlayers = new();
+	void Awake() => Instance = this;
 
-	void Awake()
+	private void Update() => RoomPlayers();
+
+	void RoomPlayers()
 	{
-		Instance = this;
+		bool playerRequired = PhotonNetwork.PlayerList.Length >= 1;
+		startGameButton.GetComponent<Button>().interactable = playerRequired;
+		infoText.SetActive(!playerRequired);
 	}
 
 	public void CreateRoom()
@@ -43,7 +42,12 @@ public class Launcher : MonoBehaviourPunCallbacks
 		if (string.IsNullOrEmpty(roomNameInputField.text))
 			return;
 
-		PhotonNetwork.CreateRoom(roomNameInputField.text);
+		RoomOptions roomOptions = new()
+		{
+			BroadcastPropsChangeToAll = true,
+			MaxPlayers = 5,
+		};
+		PhotonNetwork.CreateRoom(roomNameInputField.text, roomOptions);
 		MenuManager.Instance.OpenMenu("loading");
 	}
 
@@ -63,10 +67,24 @@ public class Launcher : MonoBehaviourPunCallbacks
 		{
 			Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(players[i]);
 		}
-
-		SetAssignmentLocal();
-
 		startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+
+		//TODO: REMOVE ME!!
+		// SetAssignmentProps(PhotonNetwork.LocalPlayer);
+
+		// set random assignments
+		// if (PhotonNetwork.PlayerList.Length < 3) return;
+
+		if (_huntedPlayers.Count < 1)
+		{
+			int randomIndex = Random.Range(0, PhotonNetwork.PlayerList.Length);
+			_huntedPlayers.Add(PhotonNetwork.PlayerList[randomIndex]);
+			SetAssignmentHunter(PhotonNetwork.PlayerList[randomIndex]);
+		}
+
+		foreach (var player in PhotonNetwork.PlayerList)
+			if (!_huntedPlayers.Contains(player))
+				SetAssignmentProps(player);
 	}
 
 	public override void OnMasterClientSwitched(Player newMasterClient)
@@ -83,7 +101,10 @@ public class Launcher : MonoBehaviourPunCallbacks
 
 	public void StartGame()
 	{
-		PhotonNetwork.LoadLevel(1);
+		List<string> mapNames = new() { "Map1", "Map2"};
+		string randomMap = mapNames[Random.Range(0, mapNames.Count)];
+		Debug.Log($"Random map index {randomMap}");
+		PhotonNetwork.LoadLevel(randomMap);
 	}
 
 	public void LeaveRoom()
@@ -121,60 +142,24 @@ public class Launcher : MonoBehaviourPunCallbacks
 	public override void OnPlayerEnteredRoom(Player newPlayer)
 	{
 		Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
-
-		SetAssignmentOther(newPlayer);
 	}
 
-	void SetAssignment(Player player)
+	void SetAssignmentHunter(Player player)
 	{
 		if (player.CustomProperties.ContainsKey("assignment"))
-		{
 			player.CustomProperties.Remove("assignment");
-			return;
-		}
 
-		int randomNum = Random.Range(1, 101);
-
-		if (_maxHunters > 0)
-		{
-			Debug.Log($"Max hunters: {_maxHunters}");
-			_maxHunters--;
-			Debug.Log($"Max hunters new: {_maxHunters}");
-			assignment = "Hunter";
-		}
-		else
-		{
-			assignment = "Props";
-		}
+		assignment = "Hunter"; // Default: Hunter
 
 		Hashtable hash = new()
 		{
 			{ "assignment", assignment }
 		};
-
 		player.SetCustomProperties(hash);
-		Debug.Log($"Assigned: {assignment}");
-	}
-
-	void SetAssignmentLocal()
-	{
-		if (!PhotonNetwork.IsMasterClient) return;
-
-		if (PhotonNetwork.MasterClient.CustomProperties.ContainsKey("assignment"))
-			PhotonNetwork.MasterClient.CustomProperties.Remove("assignment");
-
-		assignment = "Props"; // Default: Hunter
-
-		Hashtable hash = new()
-		{
-			{ "assignment", assignment }
-		};
-
-		PhotonNetwork.MasterClient.SetCustomProperties(hash);
 		Debug.Log($"Assigned to master: {assignment}");
 	}
 
-	void SetAssignmentOther(Player player)
+	void SetAssignmentProps(Player player)
 	{
 		if (player.CustomProperties.ContainsKey("assignment"))
 			player.CustomProperties.Remove("assignment");
@@ -188,47 +173,5 @@ public class Launcher : MonoBehaviourPunCallbacks
 
 		player.SetCustomProperties(hash);
 		Debug.Log($"Assigned to master: {assignment}");
-	}
-
-	void Assign(Player player)
-	{
-		if (player.CustomProperties.ContainsKey("assignment")) return;
-
-		if (_huntedPlayers.Count == 0)
-		{
-			_huntedPlayers.Add(player);
-			assignment = "Hunter";
-		}
-		else if (_huntedPlayers.Count > 0)
-		{
-			assignment = "Props";
-		}
-
-		Hashtable hash = new()
-		{
-			{ "assignment", assignment }
-		};
-		player.SetCustomProperties(hash);
-		Debug.Log($"Assigned: {assignment}");
-	}
-
-	IEnumerator AssignDelay()
-	{
-		yield return new WaitForSeconds(.5f);
-		UpdatePlayerList();
-	}
-
-	private void UpdatePlayerList()
-	{
-		List<Player> players = PhotonNetwork.PlayerList.ToList();
-
-		allPlayers.Clear();
-		allPlayers = players;
-
-		foreach (Player _player in allPlayers)
-		{
-			Assign(_player);
-			Debug.Log($"Assigning to {_player.NickName}");
-		}
 	}
 }

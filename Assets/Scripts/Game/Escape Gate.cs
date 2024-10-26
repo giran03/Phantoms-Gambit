@@ -6,10 +6,17 @@ using UnityEngine;
 
 public class EscapeGate : MonoBehaviourPunCallbacks
 {
+    public static EscapeGate Instance;
+    public List<GameObject> requiredSpiritOrbs = new();
     List<GameObject> props = new();
     List<GameObject> propsInGame = new();
-    PlayerManager playerManager;
     PhotonView _photonView;
+    public static bool IsUsable { get; set; }
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -20,32 +27,20 @@ public class EscapeGate : MonoBehaviourPunCallbacks
         {
             Debug.Log($"Found props: {item.name}");
         }
+
+        requiredSpiritOrbs = GameObject.FindGameObjectsWithTag("Orb").ToList();
     }
-    private void Update()
-    {
-        if (props.Count > 0)
-            if (propsInGame.SequenceEqual(props))
-            {
-                Debug.Log($"It is equal!");
-            }
-    }
+
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Props"))
-        {
-            //game win
-            if (!props.Contains(other.gameObject))
-            {
-                props.Add(other.gameObject);
+        if (!IsUsable) return;
 
-                _photonView.RPC(nameof(LoadLevel), RpcTarget.All);
-            }
-        }
+        if (other.gameObject.CompareTag("Props"))
+            other.gameObject.GetComponentInParent<PlayerController>().HuntHunter();
     }
 
     [PunRPC]
-    public void LoadLevel()
-    {
-        PhotonNetwork.LoadLevel(2);
-    }
+    public void LoadLevel() => PhotonNetwork.LoadLevel(2);
+
+    bool CompareLists<T>(List<T> aListA, List<T> aListB) => aListA.Count == aListB.Count && aListA.All(aListB.Contains);
 }

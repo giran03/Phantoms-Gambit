@@ -22,4 +22,4 @@ MonoBehaviour:
   magSize: 30
   currentAmmo: 30
   reloadTime: 2
-  currentMagSize: 9999
+  currentMagSize: 30

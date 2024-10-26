@@ -11,18 +11,11 @@ public class RitualPole : MonoBehaviourPunCallbacks
     public bool IsActivated { get; set; } = false;
     bool isActivating;
     List<GameObject> playerList = new();
-    [SerializeField] GameObject[] ammoBoxes;
+    [SerializeField] List<GameObject> activateObjects;
 
     private void Start()
     {
         progressBar.fillAmount = 0f;
-    }
-
-    private void Update()
-    {
-        if (!photonView.IsMine) return;
-
-        photonView.RPC(nameof(UpdateProgressBar), RpcTarget.All);
     }
 
     [PunRPC]
@@ -35,26 +28,31 @@ public class RitualPole : MonoBehaviourPunCallbacks
             {
                 foreach (var players in playerList)
                 {
-                    players.GetComponentInParent<Outline>().enabled = false;
+                    players.GetComponentInParent<PlayerController>().HidePlayerOutline();
                 }
                 playerList.Clear();
             }
         }
 
-        if (progressBar.fillAmount >= .1f && isActivating && !IsActivated)
+        if (progressBar.fillAmount >= .01f && isActivating && !IsActivated)
         {
             foreach (var players in playerList)
             {
-                players.GetComponentInParent<Outline>().enabled = true;
+                players.GetComponentInParent<PlayerController>().ShowPlayerOutline();
             }
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
+        if (!photonView.IsMine) return;
+
         if (other.gameObject.CompareTag("Props"))
         {
+            if (IsActivated) return;
+
             isActivating = true;
+            other.GetComponentInParent<PlayerController>().ShowPlayerOutline();
 
             progressBar.fillAmount += Time.deltaTime / fillSpeed;
 
@@ -69,21 +67,28 @@ public class RitualPole : MonoBehaviourPunCallbacks
                 IsActivated = true;
                 Debug.Log($"This Gate is activated!");
 
-                other.gameObject.GetComponentInParent<PlayerController>().PlaySFX(0);
+                other.gameObject.GetComponentInParent<PlayerController>().PlaySFX(6, transform.position, 500);
 
-                if (ammoBoxes.Length > 0)
-                    for (int i = 0; i < ammoBoxes.Length; i++)
-                    {
-                        ammoBoxes[i].SetActive(true);
-                        Debug.Log($"Activated ammos!");
-                    }
+                activateObjects?.ForEach(x => x.SetActive(true));
             }
+
+            photonView.RPC(nameof(UpdateProgressBar), RpcTarget.All);
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.gameObject.CompareTag("Props"))
-            isActivating = false;
+        {
+            if (playerList.Contains(other.gameObject))
+            {
+                Debug.Log($"Removed {other.gameObject}, not activating gate");
+                other.GetComponentInParent<PlayerController>().HidePlayerOutline();
+                playerList.Remove(other.gameObject);
+            }
+
+            if (playerList.Count <= 0)
+                isActivating = false;
+        }
     }
 }

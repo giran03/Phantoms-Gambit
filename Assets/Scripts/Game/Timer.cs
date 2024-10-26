@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using Photon.Pun;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Timer : MonoBehaviourPunCallbacks
 {
+    public static Timer Instance;
+
+    [Header("Timer")]
     [SerializeField] TMP_Text timer;
 
     [SerializeField] float timeLeft = 5f;
     private bool isTimerRunning = true;
 
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     private void Start()
     {
         PhotonNetwork.AutomaticallySyncScene = true;
-    }
-
-    [PunRPC]
-    private void UpdateTimer(float newTime)
-    {
-        timer.text = "Time Left: " + Mathf.Round(newTime);
     }
 
     private void Update()
@@ -33,8 +36,19 @@ public class Timer : MonoBehaviourPunCallbacks
             {
                 isTimerRunning = false;
                 Debug.Log("Game Over");
-                PhotonNetwork.LoadLevel(3);
+                PhotonNetwork.LoadLevel("HuntersWin");
+            }
+
+            if(Input.GetKeyDown(KeyCode.F5))
+            {
+                timeLeft = 2;
             }
         }
+    }
+
+    [PunRPC]
+    private void UpdateTimer(float newTime)
+    {
+        timer.text = $"{Mathf.Round(newTime)}";
     }
 }

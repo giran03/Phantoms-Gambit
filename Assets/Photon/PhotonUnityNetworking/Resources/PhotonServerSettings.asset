@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PhotonServerSettings
   m_EditorClassIdentifier: 
   AppSettings:
-    AppIdRealtime: 52c68559-a04e-4df5-aa50-bd01d5c1995b
+    AppIdRealtime: 5c606fd5-d180-4384-9968-5b005ea7b488
     AppIdChat: 
     AppIdVoice: 
     AppVersion: 
@@ -49,6 +49,54 @@ MonoBehaviour:
   - SyncRitualComplete
   - LoadLevel
   - UpdateProgressBar
+  - UpdatespiritualPowerProgress
+  - UpdateSpiritualPowerProgress
+  - HuntIsOn
+  - RespawnAmmoBox
+  - RespawnStart
+  - HideOutline
+  - ShowOutline
+  - PlayItemSFX_RPC
+  - HideOutline_RPC
+  - ShowOutline_RPC
+  - SetHUD
+  - RPC_Destroy
+  - RPC_SetInactive
+  - SetPropsList
+  - SetDefaultProp
+  - SwapModelCoroutine
+  - <UseAbility>g__AuraOfFear|27_3
+  - <UseAbility>g__InvisibilityCloak|27_2
+  - <UseAbility>g__ShowOutlineWithDelay|27_5
+  - <UseAbility>g__DestroyParticleAfterDelay|27_1
+  - <UseAbility>g__HideHunterModel|27_3
+  - <UseAbility>g__HideHunterModel|27_4
+  - <UseAbility>g__StartInvisibilityCloak|27_2
+  - <UseAbility>g__DisableHunterModel|27_4
+  - <UseAbility>g__EnableHunterModel|27_3
+  - <UseAbility>g__InvisibilityCloak|27_3
+  - <UseAbility>g__ToggleCloak|27_2
+  - <Update>g__RPC_UseAbility|68_2
+  - UseAbility
+  - <Update>g__UseAbility_RPC|68_2
+  - <UseAbility>g__StartCloak|27_2
+  - <UseAbility>g__RPC_EndInvisibilityCloak|27_3
+  - <UseAbility>g__RPC_InvisibilityCloak|27_2
+  - <UseAbility>g__RPC_AuraOfFear|27_5
+  - <UseAbility>g__RPC_EndAuraOfFear|27_6
+  - <UseAbility>g__RPC_AuraOfFear|28_5
+  - <UseAbility>g__RPC_EndAuraOfFear|28_6
+  - <UseAbility>g__RPC_EndInvisibilityCloak|28_3
+  - <UseAbility>g__RPC_InvisibilityCloak|28_2
+  - <UseAbility>g__AuraOfFear|28_7
+  - <UseAbility>g__InvisibilityCloak|28_4
+  - StartAuraOfFear
+  - StartInvisibilityCloak
+  - <UseAbility>g__StartInvisibilityCloak|28_2
+  - <UseAbility>g__InvisibilityCloak_RPC|28_2
+  - InvisibilityCloak_RPC
+  - AuraOfFear
+  - SetHunterModel
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

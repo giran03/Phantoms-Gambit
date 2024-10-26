@@ -5,24 +5,23 @@ using UnityEngine;
 
 public class DisconnectRoom : MonoBehaviourPunCallbacks
 {
+    private void Start()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
-            DisconnectPlayer();
+            ReturnToMainMenu();
     }
-
-    public void DisconnectPlayer()
-    {
-        StartCoroutine(DisconnectAndLoad());
-    }
-
-    IEnumerator DisconnectAndLoad()
+    public void ReturnToMainMenu()
     {
         PhotonNetwork.LeaveRoom();
-        while (PhotonNetwork.InRoom)
-        {
-            yield return null;
-        }
+    }
+    public override void OnLeftRoom()
+    {
+        Debug.Log($"Left Room!");
         PhotonNetwork.LoadLevel("Menu");
     }
 }

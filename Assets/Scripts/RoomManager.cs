@@ -11,7 +11,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
 	void Awake()
 	{
-		if(Instance)
+		if (Instance)
 		{
 			Destroy(gameObject);
 			return;
@@ -34,7 +34,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
 	void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
 	{
-		if(scene.buildIndex == 1) // We're in the game scene
+		List<string> mapNames = new() { "Map1", "Map2", "Map3" };
+		if (mapNames.Contains(scene.name)) // We're in the game scene
 		{
 			PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerManager"), Vector3.zero, Quaternion.identity);
 		}

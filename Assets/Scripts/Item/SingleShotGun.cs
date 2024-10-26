@@ -9,6 +9,7 @@ public class SingleShotGun : Gun
 
 	[SerializeField] int gunShotIndex;
 	[SerializeField] int gunReloadIndex;
+	[SerializeField] LayerMask shootableLayers;
 
 	[Header("Recoil")]
 	[Range(0f, 10f)] public float recoilForce = 5f;
@@ -19,8 +20,9 @@ public class SingleShotGun : Gun
 	float _lastShot;
 
 	PhotonView PV;
-	private bool isReloading;
+	bool isReloading;
 	PlayerNetworkSoundManager _playerNetworkSoundManager;
+	bool canShoot = true;
 
 	void Awake()
 	{
@@ -37,22 +39,15 @@ public class SingleShotGun : Gun
 		}
 	}
 
-	private void OnDisable()
-	{
-		((GunInfo)itemInfo).currentAmmo = 0;
-	}
-
-	public override void Use()
-	{
-		Shoot();
-	}
+	public override void Use() => Shoot();
 
 	void Shoot()
 	{
 		if (!PV.IsMine) return;
+
+		if (!canShoot) return;
+
 		if (((GunInfo)itemInfo).itemName == "Hand") return;
-
-
 
 		if (((GunInfo)itemInfo).fireRate + _lastShot > Time.time) return;
 
@@ -69,49 +64,30 @@ public class SingleShotGun : Gun
 
 	void ShootGun()
 	{
-		StopCoroutine(HealAfterTime());
-
 		Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 		ray.origin = cam.transform.position;
 
-		Physics.Raycast(ray, out RaycastHit hit);
+		Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, shootableLayers);
 		if (hit.collider != null)
 		{
-			var damageable = hit.collider.gameObject.GetComponent<IDamageable>();
-			if (damageable != null)
-			{
-				damageable.TakeDamage(((GunInfo)itemInfo).damage);
-			}
+			if (hit.collider.gameObject.TryGetComponent<IDamageable>(out var damageable))
+				damageable.TakeDamage((int)((GunInfo)itemInfo).damage);
+
 			else
 			{
 				if (GetComponentInParent<PlayerController>().IsHunter)
-				{
-					GetComponentInParent<PlayerController>().TakeDamage(4f);
-					if (gameObject.activeSelf)
-						StartCoroutine(HealAfterTime());
-				}
+					if (hit.collider.gameObject.TryGetComponent<DestroyableProps>(out var destroyableProps))
+						if (destroyableProps.CanDamagePlayer)
+							GetComponentInParent<PlayerController>().TakeDamage(10f);
 			}
-		}
 
-		IEnumerator HealAfterTime()
-		{
-			Debug.Log($"Healing the player after 10 seconds~");
-			yield return new WaitForSeconds(10);
-
-			float timer = 0;
-			bool isHealing = true;
-
-			while (isHealing)
+			if (GetComponentInParent<PlayerController>().IsHunter)
 			{
-				if (GetComponentInParent<PlayerController>().currentHealth >= 100)
-					isHealing = false;
-				else
-				{
-					GetComponentInParent<PlayerController>().HealPlayer(1f / 60f);
-					timer += Time.deltaTime;
-				}
-				yield return null;
+				if (hit.collider.gameObject.TryGetComponent<IDestroyable>(out var destroyable))
+					destroyable.Damage((int)((GunInfo)itemInfo).damage);
 			}
+
+			Debug.Log($"HITTING {hit.collider.gameObject}");
 		}
 
 		Vector3 randomHit = hit.point + Random.insideUnitSphere * .25f;
@@ -123,6 +99,53 @@ public class SingleShotGun : Gun
 		_playerNetworkSoundManager.PlayGunShotSFX(gunShotIndex);
 
 		((GunInfo)itemInfo).currentAmmo--;
+
+		if (GetComponentInParent<PlayerController>().IsHunter)
+		{
+			StartCoroutine(HealAfterTimeIfNoShooting());
+		}
+
+		IEnumerator HealAfterTimeIfNoShooting()
+		{
+			float timer = 0;
+			bool isHealing = true;
+
+			while (isHealing)
+			{
+				if (_lastShot + 5 < Time.time)
+				{
+					isHealing = false;
+					StartCoroutine(HealAfterTime());
+				}
+				else
+				{
+					timer += Time.deltaTime;
+				}
+				yield return null;
+			}
+		}
+
+		IEnumerator HealAfterTime()
+		{
+			float timer = 0;
+			bool isHealing = true;
+
+			while (isHealing)
+			{
+				if (GetComponentInParent<PlayerController>().currentHealth >= 100)
+				{
+					canShoot = true;
+					isHealing = false;
+				}
+				else
+				{
+					canShoot = false;
+					GetComponentInParent<PlayerController>().HealPlayer(1f / 60f);
+					timer += Time.deltaTime;
+				}
+				yield return null;
+			}
+		}
 	}
 
 	public void ReloadGun()
@@ -141,7 +164,6 @@ public class SingleShotGun : Gun
 		isReloading = true;
 
 		_playerNetworkSoundManager.PlayGunShotSFX(gunReloadIndex);
-
 		Vector3 originalRotation = transform.localRotation.eulerAngles;
 		transform.localRotation = Quaternion.Euler(45, 0, 0);
 
@@ -151,11 +173,21 @@ public class SingleShotGun : Gun
 		transform.localRotation = Quaternion.Euler(originalRotation);
 		Physics.SyncTransforms();
 
-		int ammoToTake = ((GunInfo)itemInfo).magSize - ((GunInfo)itemInfo).currentAmmo;
-		int ammoTaken = Mathf.Min(ammoToTake, ((GunInfo)itemInfo).currentMagSize);
+		if (PhotonNetwork.LocalPlayer.CustomProperties["assignment"].ToString() == "Hunter")
+		{
+			int ammoToTake = ((GunInfo)itemInfo).magSize - ((GunInfo)itemInfo).currentAmmo;
+			int ammoTaken = Mathf.Min(ammoToTake, ((GunInfo)itemInfo).currentMagSize);
 
-		((GunInfo)itemInfo).currentAmmo += ammoTaken;
-		((GunInfo)itemInfo).currentMagSize -= ammoTaken;
+			((GunInfo)itemInfo).currentAmmo += ammoTaken;
+		}
+		else
+		{
+			int ammoToTake = ((GunInfo)itemInfo).magSize - ((GunInfo)itemInfo).currentAmmo;
+			int ammoTaken = Mathf.Min(ammoToTake, ((GunInfo)itemInfo).currentMagSize);
+
+			((GunInfo)itemInfo).currentAmmo += ammoTaken;
+			((GunInfo)itemInfo).currentMagSize -= ammoTaken;
+		}
 	}
 
 	[PunRPC]

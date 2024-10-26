@@ -7,7 +7,7 @@ public class RitualHandler : MonoBehaviourPunCallbacks
 {
     public GameObject[] toriiGates;
     public GameObject EscapeGate;
-    bool isCompleted;
+    public bool isCompleted;
     PhotonView _photonView;
 
     private void Start()
@@ -18,6 +18,8 @@ public class RitualHandler : MonoBehaviourPunCallbacks
 
     private void Update()
     {
+        if (!photonView.IsMine) return;
+
         CheckRitual();
 
         if (Input.GetKeyDown(KeyCode.U))
@@ -49,7 +51,7 @@ public class RitualHandler : MonoBehaviourPunCallbacks
     void SyncRitualComplete(bool isRitualComplete)
     {
         isCompleted = isRitualComplete;
-        
+
         if (isCompleted)
         {
             Debug.Log($"Ritual Complete!");
