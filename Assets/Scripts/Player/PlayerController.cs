@@ -1,11 +1,8 @@
 ﻿using Photon.Pun;
 using Photon.Realtime;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -36,6 +33,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	[SerializeField] Transform orientation;
 	[SerializeField] LayerMask GroundLayer;
 	[SerializeField] TMP_Text stunTimerText;
+	public GameObject playerCam;
 	float _footstepSFXCooldown = 0f;
 	float currentSpeed;
 	Vector3 moveDirection;
@@ -73,6 +71,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	public bool canKillHunter;
 	GunInfo gunInfo;
 
+	// gun configs
+	int default_initialGunAmmo;
+	int default_initialMagSize;
+
 	// puzzle
 	[Header("HUD")]
 	[SerializeField] GameObject cantMoveIcon;
@@ -84,7 +86,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	// IPunobservable vars
 	Vector3 CheckAnimationMovement;
 
-	public static PlayerNetworkSoundManager playerNetworkSoundManager;
+	public PlayerNetworkSoundManager playerNetworkSoundManager;
 	public bool CanMove { get; set; } = true;
 	public float StunDuration { get; private set; }
 
@@ -100,17 +102,30 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		rb = GetComponent<Rigidbody>();
 		photonViewPlayer = GetComponent<PhotonView>();
 		playerNetworkSoundManager = GetComponentInChildren<PlayerNetworkSoundManager>();
-
 		playerManager = PhotonView.Find((int)photonViewPlayer.InstantiationData[0]).GetComponent<PlayerManager>();
+	}
+
+	public override void OnDisable()
+	{
+		if (!photonView.IsMine) return;
+
+		CanMove = true;
+		lockMovement = false;
+		canKillHunter = true; //TODO: REVERT TO FALSE!
+
+		// reset gun to default
+		var defaultGunStats = (GunInfo)items[0].itemInfo;
+		defaultGunStats.currentAmmo = default_initialGunAmmo;
+		defaultGunStats.currentMagSize = default_initialMagSize;
+
+		StopAllCoroutines();
+		Debug.LogError($"Setting the default gun stats for {items[0].itemInfo.itemName} with {defaultGunStats.name}");
 	}
 
 	void Start()
 	{
 		if (photonViewPlayer.IsMine)
 		{
-			// Cursor.lockState = CursorLockMode.Locked;
-			// Cursor.visible = false;
-
 			if (!IsHunter)
 			{
 				rescueOverlay.SetActive(false);
@@ -138,10 +153,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			UpdatePlayerProperties_HP();
 
 			StunDuration = IsHunter ? 7 : 45;
+			canKillHunter = false;
+
+			var defaultGunStats = (GunInfo)items[0].itemInfo;
+			default_initialGunAmmo = defaultGunStats.currentAmmo;
+			default_initialMagSize = defaultGunStats.currentMagSize;
+
+			playerCam.SetActive(true);
 		}
 		else
 		{
-			Destroy(GetComponentInChildren<Camera>().gameObject);
+			Destroy(playerCam);
 			Destroy(rb);
 			Destroy(ui);
 		}
@@ -152,11 +174,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		if (!photonViewPlayer.IsMine) return;
 
 		//TODO: REMOVE THIS!!!
-		if (Input.GetKeyDown(KeyCode.B))
-		{
-			Debug.Log($"FORCE REVIVED PLAYER!");
-			SaveDownedPlayer();
-		}
+		// if (Input.GetKeyDown(KeyCode.B))
+		// {
+		// 	SaveDownedPlayer();
+		// }
 
 		// toggle movement
 		if (Input.GetKeyDown(KeyCode.L))
@@ -167,6 +188,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			cantMoveIcon.SetActive(true);
 			ShowPlayerOutline();
 
+			// check if player is rescued
+			if (!IsHunter)
+			{
+				// check all props alive
+				playerManager.CheckPropsAlive();
+
+				if (rescueProgressBar.fillAmount >= 1f)
+					SaveDownedPlayer();
+			}
+
+			// stuns hunter
 			if (!isStunned)
 				StartCoroutine(UpdateStunnedTimer(StunDuration));
 
@@ -186,8 +218,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 
 			Debug.DrawRay(_MapProps[_currentPropIndex].transform.position + _MapProps[_currentPropIndex].transform.TransformVector(Vector3.zero),
 			Vector3.down * 1.8f, Color.green);
-
-			Debug.Log($"grounded: {grounded} | _currentPropIndex: {_currentPropIndex}");
 		}
 
 		Look();
@@ -262,7 +292,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		{
 			if (IsAuraActive)
 			{
-				Debug.LogError($"Aura of fear is active!");
 				return;
 			}
 			AbilityKeybinds();
@@ -320,16 +349,25 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			{
 				// stunned while health is not full
 				if (canKillHunter)
-					Die();
+				{
+					playerNetworkSoundManager.PlayOtherSFX(10, transform.position);
+					Invoke(nameof(Die), 3.5f);
+				}
 
 				CanMove = false;
 			}
 			else
 			{
 				CanMove = false;
+				playerNetworkSoundManager.PlayOtherSFX(10, transform.position);
 			}
 		}
+
+
 	}
+
+	[PunRPC]
+	void RPC_HuntersWin() => PhotonNetwork.LoadLevel("HuntersWin");
 
 	void FixedUpdate()
 	{
@@ -340,22 +378,24 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		MovePlayer();
 	}
 
-	public void TakeDamage(float damage)
+	public void TakeDamage(float damage, bool byPassCanKillHunter = false)
 	{
-		if (IsHunter) // && canKillHunter
+		if ((IsHunter && canKillHunter) || byPassCanKillHunter)
 		{
-			Debug.LogError("Shooting hunter!");
+			Debug.LogError($"byPassCanKillHunter: {byPassCanKillHunter}");
 			photonViewPlayer.RPC(nameof(RPC_TakeDamage), photonViewPlayer.Owner, damage);
 		}
 		else if (!IsHunter)
 			photonViewPlayer.RPC(nameof(RPC_TakeDamage), photonViewPlayer.Owner, damage);
+
+		Debug.LogError($"canKillHunter: {canKillHunter} | byPassCanKillHunter: {byPassCanKillHunter}");
 	}
 
 	public void AddMagazine(int _ammo)
 	{
 		if (IsHunter) return;
 
-		((GunInfo)items[0].itemInfo).currentMagSize = _ammo;
+		((GunInfo)items[0].itemInfo).currentMagSize += _ammo;
 	}
 
 	void GunButton(bool isAutomatic = false)
@@ -544,8 +584,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			{ "maxHealth", maxHealth }
 		};
 		PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-
-		Debug.Log($"Player HP properties set!");
 	}
 
 	#region Stunned
@@ -651,7 +689,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		for (int i = 0; i < _ability.Length; i++)
 		{
 			_abilities[i] = _ability[i];
-			Debug.Log($"Added ability: {_abilities[i].name}");
 		}
 	}
 
@@ -660,7 +697,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	[PunRPC]
 	IEnumerator AuraOfFear()
 	{
-		Debug.Log($"Starting aura of fear!");
 		_propsDefaultSpeed = MoveSpeedBurst;
 		MoveSpeedBurst = -6f;
 		IsAuraActive = true;
@@ -681,7 +717,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		if (IsHunter) return;
 
 		Timer.Instance.AddCollectedSpiritOrb(spiritOrb);
-		// Timer.Instance.RPC_UpdateSpiritualPowerProgress();
 	}
 
 	public void HuntHunter() => photonViewPlayer.RPC(nameof(HuntIsOn), RpcTarget.All);
@@ -690,7 +725,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 	void HuntIsOn()
 	{
 		canKillHunter = true;
-		// huntIcon.SetActive(true);
+		Timer.Instance.StartHunt();
 
 		((GunInfo)items[0].itemInfo).currentMagSize = 150;
 
@@ -698,12 +733,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 		{
 			((GunInfo)items[0].itemInfo).currentMagSize = 0;
 			((GunInfo)items[0].itemInfo).currentAmmo = 0;
-			Debug.Log($"Hunter Gun Disabled! THE HUNT IS ON!");
 		}
 	}
 	#endregion
 
-	GameObject overlay;
 	private void OnTriggerStay(Collider other)
 	{
 		if (!photonViewPlayer.IsMine) return;
@@ -715,11 +748,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IPunObse
 			{
 				rescuerProps = other.gameObject;
 				rescueOverlay.SetActive(true);
-				rescueProgressBar.fillAmount += Time.time / rescueTime;
+				rescueProgressBar.fillAmount += Time.smoothDeltaTime / rescueTime;
 			}
-
-			if (rescueProgressBar.fillAmount >= 1f)
-				SaveDownedPlayer();
 		}
 	}
 

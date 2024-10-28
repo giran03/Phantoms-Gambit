@@ -32,6 +32,7 @@ public class PlayerListHUD : MonoBehaviourPunCallbacks
 
         foreach (var player in PhotonNetwork.PlayerList)
         {
+            //TODO: DON'T INCLUDE LOCAL PLAYER IN HUD
             // if(player.IsLocal) return;
             if (player.CustomProperties["assignment"].ToString() == "Props")
             {
@@ -42,7 +43,7 @@ public class PlayerListHUD : MonoBehaviourPunCallbacks
                 playerName.SetText($"{player.NickName}");
 
                 Transform hpBarTransform = playerEntryInstance.transform.Find("HPbar");
-                Debug.Log($"player hp: {player.CustomProperties["currentHealth"]}/{player.CustomProperties["maxHealth"]}");
+
                 if (hpBarTransform != null)
                 {
                     Image hpBar = hpBarTransform.GetComponent<Image>();

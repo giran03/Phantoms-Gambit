@@ -27,7 +27,7 @@ public class SingleShotGun : Gun
 	void Awake()
 	{
 		PV = GetComponent<PhotonView>();
-		_playerNetworkSoundManager = PlayerController.playerNetworkSoundManager;
+		_playerNetworkSoundManager = GetComponentInParent<PlayerController>().playerNetworkSoundManager;
 	}
 
 	void Update()
@@ -77,13 +77,11 @@ public class SingleShotGun : Gun
 			{
 				if (hit.collider.gameObject.TryGetComponent<DestroyableProps>(out var destroyableProps))
 					if (destroyableProps.CanDamagePlayer)
-						GetComponentInParent<PlayerController>().TakeDamage(10f);
+						GetComponentInParent<PlayerController>().TakeDamage(10f, true);
 
 				if (hit.collider.gameObject.TryGetComponent<IDestroyable>(out var destroyable))
 					destroyable.Damage((int)((GunInfo)itemInfo).damage);
 			}
-
-			Debug.Log($"HITTING {hit.collider.gameObject}");
 		}
 
 		Vector3 randomHit = hit.point + Random.insideUnitSphere * .25f;

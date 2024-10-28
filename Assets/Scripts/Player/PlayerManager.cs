@@ -11,19 +11,31 @@ using TMPro;
 public class PlayerManager : MonoBehaviourPunCallbacks
 {
 	//TODO: ADUST VALUE
-	const float hunterSpawnTime = 2f;
+	const float hunterSpawnTime = 5f;
+	const float propsSpawnDelay = 10f;
+
+	// hunter
 	GameObject hunterOverlay;
-	GameObject hudTimer;
 	TMP_Text hunterSpawnText;
 
-	PhotonView photonView;
+	// props
+	GameObject propsOverlay;
+	TMP_Text propsSpawnText;
 
+	GameObject hudTimer;
+	GameObject progressOverlay;
+
+
+	PhotonView photonView;
 	GameObject controller;
 
 	int kills;
 	int deaths;
+	bool _isSpawning;
 
-	private bool _isSpawning;
+	GameObject[] _props;
+	List<GameObject> _downedProps = new();
+	bool _gameDone = false;
 
 	void Awake()
 	{
@@ -34,10 +46,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 	{
 		if (photonView.IsMine)
 		{
-			hunterOverlay = GameObject.Find("Hunter Overlay");
-			hudTimer = GameObject.Find("Timer Underlay");
-			hunterSpawnText = GameObject.Find("Hunter Spawn Timer").GetComponent<TMP_Text>();
+			Cursor.lockState = CursorLockMode.Locked;
+			Cursor.visible = false;
 
+			propsOverlay = GameObject.Find("Props Overlay");
+			hunterOverlay = GameObject.Find("Hunter Overlay");
+
+			hudTimer = GameObject.Find("Timer Underlay");
+			progressOverlay = GameObject.Find("Props Progress Underlay");
+
+			hunterSpawnText = GameObject.Find("Hunter Spawn Timer").GetComponent<TMP_Text>();
+			propsSpawnText = GameObject.Find("Props Spawn Timer").GetComponent<TMP_Text>();
+
+			propsOverlay.SetActive(false);
 			hunterOverlay.SetActive(false);
 			// CreateController();
 			StartCoroutine(SpawnPlayers());
@@ -49,6 +70,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 			PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
 
 			Debug.Log($"Assignment: {photonView.Owner.CustomProperties["assignment"]}");
+
+			StartCoroutine(FindAllProps());
+
+			//bgm
+			MusicManager.Instance.PlayMusic("game");
 		}
 
 		if (PhotonNetwork.IsMasterClient)
@@ -58,10 +84,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 		}
 	}
 
-	void CreateController()
+	IEnumerator FindAllProps()
 	{
-		Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
-		controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "HunterGhost"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
+		yield return new WaitForSeconds(15f);
+		_props = GameObject.FindGameObjectsWithTag("Props");
+		Debug.LogError($"Found Props players in scene: {_props.Length}");
 	}
 
 	public void Die()
@@ -77,10 +104,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 				StartCoroutine(SpawnPlayers());
 				break;
 			case "Hunter":
-				photonView.RPC(nameof(LoadLevel), RpcTarget.All);
+				if (PhotonNetwork.LocalPlayer.CustomProperties["assignment"].ToString() == "Hunter")
+					MusicManager.Instance.PlayMusic("loss");
+				else
+					MusicManager.Instance.PlayMusic("win");
+				photonView.RPC(nameof(PropsWin), RpcTarget.All);
 				break;
 		}
-
 
 		deaths++;
 		Hashtable hash = new()
@@ -92,8 +122,49 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 		PhotonNetwork.Destroy(controller);
 	}
 
+	public void CheckPropsAlive()
+	{
+		Debug.LogError($"Checking props alive~ {_props.Length} | {Timer.Instance.downedPlayersCount}");
+		if (_props.Length > 0)
+		{
+			foreach (var props in _props)
+			{
+				if (props.GetComponentInParent<PlayerController>().currentHealth <= 0 && !props.GetComponentInParent<PlayerController>().CanMove)
+				{
+					if (!Timer.Instance.downedPropsPlayers.Contains(props))
+						Timer.Instance.AddDownedPlayersToList(props);
+
+					Debug.LogError($"Added {props} to downed props list");
+				}
+				else if (props.GetComponentInParent<PlayerController>().currentHealth > 0 && props.GetComponentInParent<PlayerController>().CanMove)
+				{
+					if (Timer.Instance.downedPropsPlayers.Contains(props))
+						Timer.Instance.RemoveDownedPlayersToList(props);
+
+					Debug.LogError($"Removed {props} from downed props list");
+				}
+			}
+		}
+
+		if (_gameDone) return;
+
+		if (Timer.Instance.downedPlayersCount == _props.Length)
+		{
+			_gameDone = true;
+			Debug.LogError($"HUNTERS WIN!");
+			if (PhotonNetwork.LocalPlayer.CustomProperties["assignment"].ToString() == "Hunter")
+				MusicManager.Instance.PlayMusic("win");
+			else
+				MusicManager.Instance.PlayMusic("loss");
+			photonView.RPC(nameof(HuntersWin), RpcTarget.All);
+		}
+	}
+
 	[PunRPC]
-	void LoadLevel() => PhotonNetwork.LoadLevel("PropsWin");
+	void PropsWin() => PhotonNetwork.LoadLevel("PropsWin");
+
+	[PunRPC]
+	void HuntersWin() => PhotonNetwork.LoadLevel("HuntersWin");
 
 	public void GetKill() => photonView.RPC(nameof(RPC_GetKill), photonView.Owner);
 
@@ -122,32 +193,60 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 		switch (assignment)
 		{
 			case "Hunter":
-				StartCoroutine(SpawnDelay(hunterSpawnTime));
-				StartCoroutine(SpawnTimerText(hunterSpawnTime));
+				StartCoroutine(HunterSpawnDelay(propsSpawnDelay + hunterSpawnTime));
+				StartCoroutine(HunterSpawnTimerText(propsSpawnDelay + hunterSpawnTime));
 				break;
-
 			case "Props":
-				controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "Ghost"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
+				StartCoroutine(PropsSpawnDelay(propsSpawnDelay));
+				StartCoroutine(PropsSpawnTimerText(propsSpawnDelay));
 				break;
 		}
 
-		IEnumerator SpawnDelay(float spawnTime)
+		IEnumerator PropsSpawnDelay(float spawnTime)
+		{
+			Debug.LogError($"GLOBAL SPAWN TIMER {spawnTime}~");
+			propsOverlay.SetActive(true);
+			hudTimer.SetActive(false);
+			progressOverlay.SetActive(false);
+			yield return new WaitForSeconds(spawnTime);
+			hudTimer.SetActive(true);
+			progressOverlay.SetActive(true);
+			propsOverlay.SetActive(false);
+			controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "Ghost"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
+
+		}
+
+		IEnumerator HunterSpawnDelay(float spawnTime)
 		{
 			hunterOverlay.SetActive(true);
 			hudTimer.SetActive(false);
+			progressOverlay.SetActive(false);
 			yield return new WaitForSeconds(spawnTime);
 			hudTimer.SetActive(true);
+			progressOverlay.SetActive(true);
 			hunterOverlay.SetActive(false);
 			controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "HunterGhost"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { photonView.ViewID });
 		}
 
-		IEnumerator SpawnTimerText(float duration)
+		IEnumerator HunterSpawnTimerText(float duration)
 		{
 			_isSpawning = true;
 			while (duration > 0)
 			{
 				duration -= Time.deltaTime;
 				hunterSpawnText.SetText($"spawning in {Mathf.Round(duration)}");
+				yield return null;
+			}
+			_isSpawning = false;
+		}
+
+		IEnumerator PropsSpawnTimerText(float duration)
+		{
+			_isSpawning = true;
+			while (duration > 0)
+			{
+				duration -= Time.deltaTime;
+				propsSpawnText.SetText($"spawning in {Mathf.Round(duration)}");
 				yield return null;
 			}
 			_isSpawning = false;

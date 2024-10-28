@@ -69,7 +69,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b371549e6616f3944aa574a4b0e7e1ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _health: 300
+  _health: 600
   isRespawnable: 1
   propsModel:
   - {fileID: 3021340701422010952}

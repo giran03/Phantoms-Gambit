@@ -1,15 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
 
 public class DisconnectRoom : MonoBehaviourPunCallbacks
 {
-    private void Start()
-    {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -18,6 +11,7 @@ public class DisconnectRoom : MonoBehaviourPunCallbacks
     public void ReturnToMainMenu()
     {
         PhotonNetwork.LeaveRoom();
+        PhotonNetwork.LoadLevel("Menu");
     }
     public override void OnLeftRoom()
     {

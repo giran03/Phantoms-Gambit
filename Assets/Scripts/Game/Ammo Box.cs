@@ -15,6 +15,8 @@ public class AmmoBox : MonoBehaviourPunCallbacks
         boxCollider = GetComponent<BoxCollider>();
     }
 
+    public override void OnDisable() => StopAllCoroutines();
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Props"))

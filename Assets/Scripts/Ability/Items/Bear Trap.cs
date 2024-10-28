@@ -9,6 +9,9 @@ public class BearTrap : MonoBehaviourPunCallbacks
 {
     GameObject hunterTrapped;
     [SerializeField] ItemNetworkSFX itemNetworkSFX;
+
+    public override void OnDisable() => StopAllCoroutines();
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Hunter"))

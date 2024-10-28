@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,9 +9,10 @@ public interface IDestroyable
     void Damage(int damageAmount);
 }
 
-public class DestroyableStats
+public class DestroyableStats : MonoBehaviourPunCallbacks
 {
     int _health;
+    int _defaultHealth;
     GameObject _currentObect;
     public DamageMultiplier _damageMultiplier;
 
@@ -27,6 +29,7 @@ public class DestroyableStats
         _damageMultiplier = damageMultiplier;
         _currentObect = currentObject;
         _health = health;
+        _defaultHealth = health;
     }
 
     public void Hit(int damageAmount, List<GameObject> propsModel = null, bool isRespawnable = false)
@@ -58,9 +61,11 @@ public class DestroyableStats
 
         IEnumerator Respawn()
         {
+            _health = 0;
             propsModel.ForEach(x => x.SetActive(false));
             propsModel.ForEach(x => x.GetComponentInParent<Collider>().enabled = false);
             yield return new WaitForSeconds(5);
+            _health = _defaultHealth;
             propsModel.ForEach(x => x.SetActive(true));
             propsModel.ForEach(x => x.GetComponentInParent<Collider>().enabled = true);
         }

@@ -18,15 +18,17 @@ public class Timer : MonoBehaviourPunCallbacks
     public int collectedOrbs;
 
     [SerializeField] float timeLeft = 5f;
-    private bool isTimerRunning = true;
+    [SerializeField] bool isTimerRunning = false;
 
     public List<GameObject> collectedSpiritOrbs = new();
     int orbsCount;
 
-    private void Awake()
-    {
-        Instance = this;
-    }
+    public List<GameObject> downedPropsPlayers = new();
+    public int downedPlayersCount = 0;
+
+    private void Awake() => Instance = this;
+
+    public override void OnDisable() => StopAllCoroutines();
 
     private void Start()
     {
@@ -45,16 +47,22 @@ public class Timer : MonoBehaviourPunCallbacks
             {
                 isTimerRunning = false;
                 Debug.Log("Game Over");
+                if (PhotonNetwork.LocalPlayer.CustomProperties["assignment"].ToString() == "Hunter")
+                    MusicManager.Instance.PlayMusic("win");
+                else
+                    MusicManager.Instance.PlayMusic("loss");
                 PhotonNetwork.LoadLevel("HuntersWin");
             }
 
-            if (Input.GetKeyDown(KeyCode.F5))
+            if (Input.GetKeyDown(KeyCode.F4))
             {
-                timeLeft = 2;
+                if (Input.GetKeyDown(KeyCode.F5))
+                {
+                    timeLeft = 2;
+                }
             }
 
             photonView.RPC(nameof(UpdateSpiritualPowerProgress), RpcTarget.All, orbsCount);
-            Debug.LogError($"PROGRESS BAR: {orbsCount} / {maxCollectedSpiritOrb}");
         }
     }
 
@@ -83,4 +91,27 @@ public class Timer : MonoBehaviourPunCallbacks
 
     [PunRPC]
     void ActivateHuntIcon() => huntIcon.SetActive(true);
+
+
+    public void AddDownedPlayersToList(GameObject _propsPlayer)
+    {
+        if (!downedPropsPlayers.Contains(_propsPlayer))
+            downedPropsPlayers.Add(_propsPlayer);
+
+        photonView.RPC(nameof(AddDownedPlayers_RPC), RpcTarget.MasterClient);
+    }
+
+    public void RemoveDownedPlayersToList(GameObject _propsPlayer)
+    {
+        if (downedPropsPlayers.Contains(_propsPlayer))
+            downedPropsPlayers.Remove(_propsPlayer);
+
+        photonView.RPC(nameof(DescreaseDownedPlayers_RPC), RpcTarget.MasterClient);
+    }
+
+    [PunRPC]
+    void AddDownedPlayers_RPC() => downedPlayersCount++;
+
+    [PunRPC]
+    void DescreaseDownedPlayers_RPC() => downedPlayersCount--;
 }

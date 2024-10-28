@@ -6,7 +6,7 @@ using UnityEngine;
 public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
 {
     public GameObject audioSourcePrefab;
-    public AudioSource footstepSource;
+    AudioSource footstepSource;
     public AudioClip footstepSFX;
 
     public AudioSource gunShotSource;
@@ -18,54 +18,91 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
     public AudioSource otherSource;
     public AudioClip[] otherSFX;
 
-    public void PlayFootstepSFX() => GetComponent<PhotonView>().RPC(nameof(PlayFootstepSFX_RPC), RpcTarget.All);
+    GameObject spawnedAudioSource;
+    PhotonView _photonView;
+
+    public void PlayFootstepSFX() => _photonView.RPC(nameof(PlayFootstepSFX_RPC), RpcTarget.All);
+    
+    private void Start()
+    {
+        if(photonView.IsMine)
+        {
+            _photonView = GetComponent<PhotonView>();
+            footstepSource = GetComponentInParent<AudioSource>();
+        }
+    }
 
     [PunRPC]
     public void PlayFootstepSFX_RPC()
     {
-        footstepSource.clip = footstepSFX;
+        // footstepSource.clip = footstepSFX;
+        // footstepSource.pitch = Random.Range(0.7f, 1.2f);
+        // footstepSource.volume = Random.Range(.2f, .35f);
+        // footstepSource.Play();
 
-        footstepSource.pitch = Random.Range(0.7f, 1.2f);
-        footstepSource.volume = Random.Range(.2f, .35f);
-
-        footstepSource.Play();
+        var spawnedAudioSource = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
+        var audioSource = spawnedAudioSource.GetComponent<AudioSource>();
+        audioSource.pitch = Random.Range(0.7f, 1.2f);
+        audioSource.volume = Random.Range(.2f, .35f);
+        audioSource.clip = footstepSFX;
+        audioSource.Play();
+        StartCoroutine(DestroyAudioObjectAfterClipFinished(spawnedAudioSource, transform.position));
     }
 
-    public void PlayGunShotSFX(int index) => GetComponent<PhotonView>().RPC(nameof(PlayGunShotSFX_RPC), RpcTarget.All, index);
+    public void PlayGunShotSFX(int index) => _photonView.RPC(nameof(PlayGunShotSFX_RPC), RpcTarget.All, index);
 
     [PunRPC]
     public void PlayGunShotSFX_RPC(int index)
     {
         gunShotSource.clip = gunShotSFX[index];
-
         gunShotSource.volume = Random.Range(.2f, .35f);
-
         gunShotSource.Play();
+
+        // var spawnedAudioSource = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
+        // var audioSource = spawnedAudioSource.GetComponent<AudioSource>();
+        // audioSource.volume = Random.Range(.2f, .35f);
+        // audioSource.clip = gunShotSFX[index];
+        // audioSource.Play();
+        // StartCoroutine(DestroyAudioObjectAfterClipFinished(spawnedAudioSource, transform.position));
     }
 
-    public void PlayWhistleSFX() => GetComponent<PhotonView>().RPC(nameof(PlayWhistleSFX_RPC), RpcTarget.All);
+    public void PlayWhistleSFX() => _photonView.RPC(nameof(PlayWhistleSFX_RPC), RpcTarget.All);
 
     [PunRPC]
     public void PlayWhistleSFX_RPC()
     {
         int randomIndex = Random.Range(0, whistleSFX.Length);
         whistleSource.clip = whistleSFX[randomIndex];
-
         whistleSource.Play();
+
+        // var spawnedAudioSource = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
+        // var audioSource = spawnedAudioSource.GetComponent<AudioSource>();
+        // audioSource.clip = whistleSFX[Random.Range(0, whistleSFX.Length)];
+        // audioSource.Play();
+        // StartCoroutine(DestroyAudioObjectAfterClipFinished(spawnedAudioSource, transform.position));
     }
 
     public void PlayOtherSFX(int index, Vector3 spawnAudioSourcePosition, int maxAudioDistance = 35) =>
-                GetComponent<PhotonView>().RPC(nameof(PlayOtherSFX_RPC), RpcTarget.All, index, spawnAudioSourcePosition, maxAudioDistance);
+                _photonView.RPC(nameof(PlayOtherSFX_RPC), RpcTarget.All, index, spawnAudioSourcePosition, maxAudioDistance);
 
     [PunRPC]
     public void PlayOtherSFX_RPC(int index, Vector3 spawnAudioSourcePosition, int maxAudioDistance)
     {
-        GameObject audioObject = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
-        AudioSource audioSource = audioObject.GetComponent<AudioSource>();
+        spawnedAudioSource = PhotonNetwork.Instantiate(audioSourcePrefab.name, transform.position, Quaternion.identity);
+        AudioSource audioSource = spawnedAudioSource.GetComponent<AudioSource>();
         audioSource.maxDistance = maxAudioDistance;
         audioSource.clip = otherSFX[index];
         audioSource.Play();
-        StartCoroutine(DestroyAudioObjectAfterClipFinished(audioObject, spawnAudioSourcePosition));
+        StartCoroutine(DestroyAudioObjectAfterClipFinished(spawnedAudioSource, spawnAudioSourcePosition));
+    }
+
+    [PunRPC]
+    void StopCurrentSFX_RPC()
+    {
+        AudioSource audioSource = spawnedAudioSource.GetComponent<AudioSource>();
+        audioSource.Stop();
+        if (spawnedAudioSource != null)
+            PhotonNetwork.Destroy(spawnedAudioSource);
     }
 
 
@@ -73,16 +110,19 @@ public class PlayerNetworkSoundManager : MonoBehaviourPunCallbacks
     {
         AudioSource audioSource = audioObject.GetComponent<AudioSource>();
 
-        while (audioSource.time < audioSource.clip.length)
+        if (audioObject != null)
         {
-            if (spawnAudioSourcePosition != Vector3.zero)
-                audioObject.transform.SetPositionAndRotation(spawnAudioSourcePosition, Quaternion.identity);
-            else
-                audioObject.transform.position = transform.position;
+            while (audioSource.time < audioSource.clip.length)
+            {
+                if (spawnAudioSourcePosition != Vector3.zero)
+                    audioObject.transform.SetPositionAndRotation(spawnAudioSourcePosition, Quaternion.identity);
+                else
+                    audioObject.transform.position = transform.position;
 
-            yield return null;
+                yield return null;
+            }
+
+            PhotonNetwork.Destroy(audioObject);
         }
-
-        PhotonNetwork.Destroy(audioObject);
     }
 }

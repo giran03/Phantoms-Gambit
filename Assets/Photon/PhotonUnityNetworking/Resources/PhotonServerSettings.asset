@@ -107,6 +107,14 @@ MonoBehaviour:
   - ActivateHuntIcon
   - StartHuntingHunter
   - EnablePlayerAfterDelay
+  - StopCurrentSFX_RPC
+  - RPC_HuntersWin
+  - HuntersWin
+  - PropsWin
+  - AddDownedPlayers_RPC
+  - DescreaseDownedPlayers_RPC
+  - DestroyProps_RPC
+  - Respawn_RPC
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

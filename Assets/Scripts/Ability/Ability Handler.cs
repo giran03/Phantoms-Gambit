@@ -8,7 +8,7 @@ using Unity.Burst.Intrinsics;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class AbilityHandler : MonoBehaviourPun
+public class AbilityHandler : MonoBehaviourPunCallbacks
 {
     public GameObject hunterModel;
     [SerializeField] List<Image> skillImages;
@@ -51,6 +51,8 @@ public class AbilityHandler : MonoBehaviourPun
         _photonview = GetComponent<PhotonView>();
     }
 
+    public override void OnDisable() => StopAllCoroutines();
+
     private void Start()
     {
         if (_photonview.IsMine)
@@ -89,12 +91,6 @@ public class AbilityHandler : MonoBehaviourPun
                 for (int i = 0; i < abilities.Length; i++)
                     abilities[i].OnCooldown = false;
             }
-
-
-            // if (PhotonNetwork.PlayerList.Length > 1)
-            //     hunterModel = GameObject.Find("Hunter Model");
-            // else
-            //     Debug.Log($"Player count is too low! {PhotonNetwork.PlayerList.Length}");
         }
 
         IEnumerator DelayedCall()
@@ -150,7 +146,7 @@ public class AbilityHandler : MonoBehaviourPun
                 case AbilityType.Teleportation_Dash:
                     Debug.Log($"Using Teleportation Dash");
 
-                    PlayerController.playerNetworkSoundManager.PlayOtherSFX(2, Vector3.zero);
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(2, transform.position);
                     SpawnParticle("Flash", spawnedParticleSingleShot);
 
                     if (Physics.Raycast(transform.position, transform.forward, out hit, 6f))
@@ -171,9 +167,10 @@ public class AbilityHandler : MonoBehaviourPun
                     if (MaxTrap <= 0) return;
                     MaxTrap--;
                     Vector3 spawnDirection = transform.TransformDirection(Vector3.forward);
-                    PlayerController.playerNetworkSoundManager.PlayOtherSFX(3, Vector3.zero);
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(3, transform.position);
 
-                    if (Physics.Raycast(transform.position, transform.forward, out hit, 6f))
+                    if (Physics.Raycast(_playerController.playerCam.GetComponent<Camera>().ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0f)), 
+                        _playerController.playerCam.GetComponent<Camera>().transform.forward, out hit, 6f))
                     {
                         if (hit.distance < 6f)
                         {
@@ -189,13 +186,14 @@ public class AbilityHandler : MonoBehaviourPun
 
                 case AbilityType.Sound_Mimicry:
                     Debug.Log($"Using Sound Mimicry");
-                    PlayerController.playerNetworkSoundManager.PlayWhistleSFX();
+                    // PlayerController.playerNetworkSoundManager.PlayWhistleSFX();
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(12, transform.position, 300);
                     break;
 
                 case AbilityType.Panic_Button:
                     Debug.Log($"Using Panic Button");
-                    GetComponent<PlayerController>().MoveSpeedBurst = 6f;
-                    PlayerController.playerNetworkSoundManager.PlayOtherSFX(4, Vector3.zero);
+                    _playerController.MoveSpeedBurst = 6f;
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(4, transform.position);
                     StartCoroutine(ResetMoveSpeedAfterDelay());
                     break;
 
@@ -207,7 +205,7 @@ public class AbilityHandler : MonoBehaviourPun
                     Collider[] colliders = Physics.OverlapSphere(transform.position, 7f);
                     foreach (var col in colliders)
                     {
-                        Debug.LogError($"_col: {col.gameObject.name}");
+                        // Debug.LogError($"_col: {col.gameObject.name}");
                         if (col.CompareTag("Props"))
                         {
                             Debug.LogError($"_props caught in aura of fear: {col.gameObject.name}");
@@ -217,6 +215,7 @@ public class AbilityHandler : MonoBehaviourPun
                             Debug.Log($"Not props! {col.gameObject.name}");
                     }
 
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(11, transform.position);
                     SpawnParticle("Aura of Fear", spawnedParticle);
                     break;
 
@@ -224,11 +223,13 @@ public class AbilityHandler : MonoBehaviourPun
                     Debug.Log($"Using Invisibility Cloak");
                     _photonview.RPC(nameof(InvisibilityCloak_RPC), RpcTarget.All);
                     SpawnParticle("Invisibility", spawnedParticle);
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(7, transform.position);
                     break;
 
                 case AbilityType.Temporal_Vision:
                     Debug.Log($"Using Temporal Vision");
                     StartCoroutine(ShowOutlineWithDelay());
+                    _playerController.playerNetworkSoundManager.PlayOtherSFX(8, transform.position);
                     break;
             }
 
@@ -251,7 +252,7 @@ public class AbilityHandler : MonoBehaviourPun
         IEnumerator ResetMoveSpeedAfterDelay()
         {
             yield return new WaitForSeconds(1.2f);
-            GetComponent<PlayerController>().MoveSpeedBurst = 0f;
+            _playerController.MoveSpeedBurst = 0f;
         }
 
         IEnumerator ShowOutlineWithDelay()

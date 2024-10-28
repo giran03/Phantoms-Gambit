@@ -7,6 +7,7 @@ using Photon.Realtime;
 using System.Linq;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
@@ -22,6 +23,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 	[SerializeField] GameObject startGameButton;
 	[SerializeField] GameObject infoText;
 
+	const int minimumPlayers = 2;
 	int _maxHunters = 1;
 	string assignment;
 	List<Player> _huntedPlayers = new();
@@ -29,11 +31,20 @@ public class Launcher : MonoBehaviourPunCallbacks
 
 	void Awake() => Instance = this;
 
+	private void Start()
+	{
+		Cursor.lockState = CursorLockMode.None;
+		Cursor.visible = true;
+
+		//bgm
+		MusicManager.Instance.PlayMusic("main");
+	}
+
 	private void Update() => RoomPlayers();
 
 	void RoomPlayers()
 	{
-		bool playerRequired = PhotonNetwork.PlayerList.Length >= 1;
+		bool playerRequired = PhotonNetwork.PlayerList.Length >= minimumPlayers;
 		if (!isClicked)
 			startGameButton.GetComponent<Button>().interactable = playerRequired;
 		infoText.SetActive(!playerRequired);
@@ -75,7 +86,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 		// SetAssignmentProps(PhotonNetwork.LocalPlayer);
 
 		// set random assignments
-		// if (PhotonNetwork.PlayerList.Length < 3) return;
+		if (PhotonNetwork.PlayerList.Length < minimumPlayers - 1) return;
 
 		if (_huntedPlayers.Count < 1)
 		{
@@ -107,7 +118,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 		List<string> mapNames = new() { "Map1", "Map2" };
 		string randomMap = mapNames[Random.Range(0, mapNames.Count)];
 		Debug.Log($"Random map index {randomMap}");
-		PhotonNetwork.LoadLevel("Map2");
+		PhotonNetwork.LoadLevel(randomMap);
 	}
 
 	public void LeaveRoom()
@@ -180,4 +191,9 @@ public class Launcher : MonoBehaviourPunCallbacks
 
 	public void Button_RefreshRoomlist() => PhotonNetwork.JoinLobby();
 
+	public void Button_Credits()
+	{
+		SceneManager.LoadSceneAsync("Credits");
+		SceneManager.UnloadSceneAsync("Menu");
+	}
 }

@@ -1,0 +1,184 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7469943083207972149
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3752594677234591482}
+  - component: {fileID: 2378484243231714617}
+  - component: {fileID: 7975775167104892760}
+  - component: {fileID: 8831040341002394475}
+  m_Layer: 0
+  m_Name: Cauldron Destroyable
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3752594677234591482
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7469943083207972149}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.257, y: 7.525, z: 23.406}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8715128716546255539}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &2378484243231714617
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7469943083207972149}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.18
+  m_Height: 0.36
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.20485288, z: 0.0000009536743}
+--- !u!114 &7975775167104892760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7469943083207972149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 0
+  OwnershipTransfer: 0
+  ObservedComponents:
+  - {fileID: 0}
+  viewIdField: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
+--- !u!114 &8831040341002394475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7469943083207972149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b371549e6616f3944aa574a4b0e7e1ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _health: 500
+  isRespawnable: 1
+  propsModel:
+  - {fileID: 8695098183494014509}
+  CanDamagePlayer: 1
+--- !u!1001 &4971485438096238275
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3752594677234591482}
+    m_Modifications:
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 253
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4347506431655604462, guid: 1963a482763d2e846b81fe3dc0981b22,
+        type: 3}
+      propertyPath: m_Name
+      value: Cauldron_1 (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1963a482763d2e846b81fe3dc0981b22, type: 3}
+--- !u!1 &8695098183494014509 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4347506431655604462, guid: 1963a482763d2e846b81fe3dc0981b22,
+    type: 3}
+  m_PrefabInstance: {fileID: 4971485438096238275}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8715128716546255539 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4326860619036445808, guid: 1963a482763d2e846b81fe3dc0981b22,
+    type: 3}
+  m_PrefabInstance: {fileID: 4971485438096238275}
+  m_PrefabAsset: {fileID: 0}

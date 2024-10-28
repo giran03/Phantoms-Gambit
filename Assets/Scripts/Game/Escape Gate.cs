@@ -52,6 +52,7 @@ public class EscapeGate : MonoBehaviourPunCallbacks
     {
         foreach (var props in GameObject.FindGameObjectsWithTag("Props"))
             props.GetComponentInParent<PlayerController>().HuntHunter();
+
         foreach (var hunters in GameObject.FindGameObjectsWithTag("Hunter"))
             hunters.GetComponentInParent<PlayerController>().HuntHunter();
     }

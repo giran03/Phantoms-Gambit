@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   abilityType: 0
   abilityImage: {fileID: 21300000, guid: 38a41d040a40fa847af372ff8b042897, type: 3}
-  AbilityCooldown: 1
+  AbilityCooldown: 10
   OnCooldown: 0
